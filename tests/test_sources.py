@@ -11,6 +11,7 @@ import os
 import re
 import sys
 import unittest
+from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
@@ -34,6 +35,27 @@ ARABIC = re.compile(r'^[ء-يّ]+(?: [ء-يّ]+)*$')
 ARABIC_SCAN = re.compile(r'^[ء-يڤ]+(?: [ء-يڤ]+)*$')
 FRENCH = re.compile(r"^[A-Za-zÀ-ÿ’']+(?:[ -][A-Za-zÀ-ÿ’']+)*$")
 DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+# Who read a name: Claude, the founder, or a contributor, by their GitHub username
+READER = re.compile(r'^(claude|founder|[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)$')
+
+# A daïra's seat is printed apart from the commune that heads its list
+SEAT_DIFFERS = ("the daïra's seat and the first commune of its list differ: the text prints the name twice, so a correction "
+                "to one usually needs the other. If the text really prints them differently, add the pair to {} in "
+                "tests/test_sources.py.")
+
+
+def same_names(test, mine, theirs, table, labels=('this text', 'the other text'), loose=lambda s: s):
+    """Fail, saying which names differ and what to do, unless mine and theirs name the same places.
+    A real difference between two texts is recorded in `table`, a dict in this file."""
+    here, there = Counter(map(loose, mine)), Counter(map(loose, theirs))
+    if here == there:
+        return
+    printed = {loose(n): n for n in [*theirs, *mine]}
+    only_here = sorted(printed[n] for n in (here - there).elements())
+    only_there = sorted(printed[n] for n in (there - here).elements())
+    test.fail(f'only in {labels[0]}: {only_here}; only in {labels[1]}: {only_there}. If a transcription is wrong, '
+              f'correct it in data/source/. If the texts really print the names differently, add the pair to '
+              f'{table} in tests/test_sources.py. CONTRIBUTING.md, "Correct a name", says how.')
 
 # (article, via, count) for every list, in the order of the text
 LAW_19_12 = [
@@ -254,15 +276,15 @@ class Lists(unittest.TestCase):
             with self.subTest(edition=edition):
                 old = [spellings.get(r[edition], r[edition]) for r in before['34'] + before['52 bis 6']]
                 new = [r[edition] for r in found['34'] + found['52 bis 6']]
-                self.assertEqual(sorted(old), sorted(new))
+                same_names(self, new, old, 'OUARGLA_SPELLINGS', ('Ordinance 21-03', 'Law 19-12'))
 
     def test_biskra_is_split_between_biskra_and_el_kantara(self):
         before, after = lists('law-19-12'), lists('law-26-06')
         for edition, spellings in BISKRA_SPELLINGS.items():
             with self.subTest(edition=edition):
-                old = sorted(spellings.get(r[edition], r[edition]) for r in before['11'])
-                new = sorted(r[edition] for r in after['11'] + after['52 bis 12'])
-                self.assertEqual(old, new)
+                old = [spellings.get(r[edition], r[edition]) for r in before['11']]
+                new = [r[edition] for r in after['11'] + after['52 bis 12']]
+                same_names(self, new, old, 'BISKRA_SPELLINGS', ('Law 26-06', 'Law 19-12'))
 
 
 class Ordinance9714(unittest.TestCase):
@@ -430,7 +452,8 @@ class Dairas(unittest.TestCase):
                 with self.subTest(daira=key, edition=edition):
                     name = seat['name_' + edition]
                     name = SEAT_SPELLINGS_91_306[edition].get(name, name)
-                    self.assertEqual(loose[edition](name), loose[edition](first['name_' + edition]))
+                    self.assertEqual(loose[edition](name), loose[edition](first['name_' + edition]),
+                                     SEAT_DIFFERS.format('SEAT_SPELLINGS_91_306'))
 
 
 class DairaTables:
@@ -500,8 +523,9 @@ class DairaTables:
                 continue
             with self.subTest(daira=key):
                 fr, ar = self.SEATS['fr'].get(seat['name_fr'], seat['name_fr']), self.SEATS['ar'].get(seat['name_ar'], seat['name_ar'])
-                self.assertEqual(loose_fr(fr), loose_fr(first['name_fr']))
-                self.assertEqual(loose_ar(ar), loose_ar(first['name_ar']))
+                table = f"the SEATS of {type(self).__name__}"
+                self.assertEqual(loose_fr(fr), loose_fr(first['name_fr']), SEAT_DIFFERS.format(table))
+                self.assertEqual(loose_ar(ar), loose_ar(first['name_ar']), SEAT_DIFFERS.format(table))
 
 
 class LawTables(DairaTables):
@@ -523,8 +547,9 @@ class LawTables(DairaTables):
             for edition in ('fr', 'ar'):
                 with self.subTest(wilaya=wilaya, edition=edition):
                     spelled = self.SPELLINGS[edition]
-                    self.assertEqual(sorted(loose[edition](spelled.get(r['name_' + edition], r['name_' + edition])) for r in mine),
-                                     sorted(loose[edition](r['name_' + edition]) for r in law[wilaya]))
+                    same_names(self, [spelled.get(r['name_' + edition], r['name_' + edition]) for r in mine],
+                               [r['name_' + edition] for r in law[wilaya]],
+                               'SPELLINGS_' + self.TEXT[-6:].replace('-', '_'), ('the decree', 'the law'), loose[edition])
 
 
 class Dairas1992(DairaTables, unittest.TestCase):
@@ -696,7 +721,7 @@ class Readings(unittest.TestCase):
             with self.subTest(text=r['text'], article=r['article'], item=r['item']):
                 self.assertIn(r['edition'], ('ar', 'fr'))
                 self.assertRegex(r['pdf_page'], r'^\d+$')
-                self.assertIn(r['by'], ('claude', 'founder'))
+                self.assertRegex(r['by'], READER, 'by is claude, founder, or the GitHub username of whoever read it')
                 self.assertIn(r['reviewed_by'], ('', 'founder'))
                 if r['reviewed_by']:
                     self.assertNotEqual(r['reviewed_by'], r['by'], 'a reading is reviewed by someone else')
