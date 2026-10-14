@@ -41,6 +41,24 @@ echo $data["commune"]["name"]["fr"] . PHP_EOL;
 - A code that doesn't exist, such as `/v1/communes/9999.json`, is a 404 with an empty body.
 - To work offline, download a release: each one holds the whole API as a zip and the tables as CSV.
 
+## In a spreadsheet
+
+You can load the API's CSV files directly into a spreadsheet without writing code.
+
+**Google Sheets**
+
+Enter this formula in an empty cell:
+
+`=IMPORTDATA("https://wilayas.djazair.dev/v1/communes.csv")`
+
+**Excel**
+
+1. Go to **Data → From Web**.
+2. Enter `https://wilayas.djazair.dev/v1/communes.csv`.
+3. Follow the prompts to import the data into your worksheet.
+
+Check that the Arabic names display correctly. If they do not, note what you see.
+
 ## Files
 
 | Path | Contents |
