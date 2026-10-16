@@ -51,13 +51,16 @@ Enter this formula in an empty cell:
 
 `=IMPORTDATA("https://wilayas.djazair.dev/v1/communes.csv")`
 
+Google Sheets may automatically remove leading zeros from codes and convert values in `listed_item` into dates. Check the imported data carefully before relying on it.
+
 **Excel**
 
-1. Go to **Data → From Web**.
-2. Enter `https://wilayas.djazair.dev/v1/communes.csv`.
-3. Follow the prompts to import the data into your worksheet.
+1. Go to **Data → From Web** and enter `https://wilayas.djazair.dev/v1/communes.csv`.
+2. In the preview, select **Transform Data**.
+3. In Power Query, set these five columns to **Text**: `listed_item`, `code`, `wilaya`, `daira`, and `wilaya_before`. If prompted, choose **Replace current**.
+4. Select **Close & Load**.
 
-Check that the Arabic names display correctly. If they do not, note what you see.
+Check that `0101` remains `0101`, values such as `1/1` in `listed_item` remain text rather than dates, and no conversion errors remain.
 
 ## Files
 
