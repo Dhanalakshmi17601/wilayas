@@ -47,20 +47,20 @@ You can load the API's CSV files directly into a spreadsheet without writing cod
 
 **Google Sheets**
 
-Enter this formula in an empty cell:
+1. Download [`communes.csv`](https://wilayas.djazair.dev/v1/communes.csv).
+2. In Google Sheets, select **File → Import → Upload** and upload the downloaded CSV file.
+3. Untick **Convert text to numbers, dates, and formulas** before importing.
 
-`=IMPORTDATA("https://wilayas.djazair.dev/v1/communes.csv")`
-
-Google Sheets may automatically remove leading zeros from codes and convert values in `listed_item` into dates. Check the imported data carefully before relying on it.
+Check that `0101` in `code` and `1/1` in `listed_item` remain unchanged.
 
 **Excel**
 
 1. Go to **Data → From Web** and enter `https://wilayas.djazair.dev/v1/communes.csv`.
 2. In the preview, select **Transform Data**.
-3. In Power Query, set these five columns to **Text**: `listed_item`, `code`, `wilaya`, `daira`, and `wilaya_before`. If prompted, choose **Replace current**.
+3. In Power Query, set these six columns to **Text**: `code`, `wilaya`, `daira`, `wilaya_before`, `listed_article`, and `listed_item`. If prompted, choose **Replace current**.
 4. Select **Close & Load**.
 
-Check that `0101` remains `0101`, values such as `1/1` in `listed_item` remain text rather than dates, and no conversion errors remain.
+Check that `0101` remains `0101`, values such as `1/1` in `listed_item` remain text rather than dates, values such as `01` in `listed_article` retain their leading zeros, and no conversion errors remain.
 
 ## Files
 
